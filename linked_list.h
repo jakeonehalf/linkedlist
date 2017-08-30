@@ -21,6 +21,7 @@ void ll_push_head(linked_list_t *ll, void *data);
 void *ll_pop_head(linked_list_t *ll);
 void *ll_pop_tail(linked_list_t *ll);
 void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data));
+void *ll_pop_by_index(linked_list_t *ll, int index);
 void ll_print_list(linked_list_t *ll);
 
 #endif //__LINKED_LIST_H__

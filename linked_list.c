@@ -260,10 +260,11 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 		return ll_pop_head(ll);
 	}
 
-	// While there are nodes in the linked list. - OOPS... this doesn't account for the tail of the linked list!
+	// While there are nodes in the linked list.
 	while(current->next != NULL) {
 		// If the provided compare_function returns true.
 		if(compare_function(current->data)) {
+			// Grab the data before doing anything with the pointer.
 			void *data = current->data;
 
 			// The previous node now points to the current node's next node.
@@ -294,6 +295,48 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 
 	// Node wasn't found in the list.
 	return NULL;
+}
+
+/* Remove the node at the specified index. */
+void *ll_pop_by_index(linked_list_t *ll, int index) {
+	// If the specified index is the head node.
+	if (index == 0) {
+		return ll_pop_head(ll);
+	}
+
+	// If the specified index is the tail node.
+	if (index == ll->size - 1) {
+		return ll_pop_tail(ll);
+	}
+
+	// If the index is beyond the size of the linked list.
+	if (index >= ll->size) {
+		return NULL;
+	}
+
+	// Point to the head node.
+	node_t *current = ll->head;
+
+	// Iterate over the list until reached the specified index.
+	int i;
+	for(i = 0; i != index; i++) {
+		current = current->next;
+	}
+
+	// Grab the data before doing anything with the pointer.
+	void *data = current->data;
+
+	// Point the previous node at the next in the list.
+	current->prev->next = current->next;
+
+	// Point the next node at the previous node in the list.
+	current->next->prev = current->prev;
+
+	// Node is ready to be deallocated.
+	free(current);
+
+	// Return the data.
+	return data;
 }
 
 /* Prints the information about all nodes in the linked list. Useful for debug information. */
