@@ -29,10 +29,10 @@ This function returns the data of the first node that a true is returned from th
 
 ### ll_print_list(linked_list_t * ll)
 This function prints for each node:
-  The address of the node,
-  The address of the data,
-  The address of the previous node,
-  The address of the next node
+  * The address of the node,
+  * The address of the data,
+  * The address of the previous node,
+  * The address of the next node
 This is useful for debugging.
 
 ## Version History
