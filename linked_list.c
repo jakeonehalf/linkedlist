@@ -129,6 +129,22 @@ void ll_push_head(linked_list_t *ll, void *data) {
 	ll->size++;
 }
 
+/* Push data into the list after the element found by using the provided compare function. */
+void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data)) {
+
+}
+
+/* Push data into the list before the element found by using the provided compare function. */
+void ll_push_before(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data)) {
+
+}
+
+/* Push data into the list at the specified index assuming a 0 indexed list.
+ * This will shift the element at the specified index to be after the inserted node. */
+void ll_push_at_index(linked_list_t *ll, void *data, int index) {
+
+}
+
 /* Remove the head of the provided linked list and adjust the head. */
 void *ll_pop_head(linked_list_t *ll) {
 	void *data = NULL;
@@ -297,15 +313,15 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 	return NULL;
 }
 
-/* Remove the node at the specified index. */
+/* Remove the node at the specified index. A negative number traverses the list from the tail (-1 indexed). */
 void *ll_pop_by_index(linked_list_t *ll, int index) {
 	// If the specified index is the head node.
-	if (index == 0) {
+	if (index == 0 || index == (ll->size * -1)) {
 		return ll_pop_head(ll);
 	}
 
 	// If the specified index is the tail node.
-	if (index == ll->size - 1) {
+	if (index == ll->size - 1 || index == -1) {
 		return ll_pop_tail(ll);
 	}
 
@@ -314,17 +330,33 @@ void *ll_pop_by_index(linked_list_t *ll, int index) {
 		return NULL;
 	}
 
-	// Point to the head node.
-	node_t *current = ll->head;
+	void *data = NULL;
 
-	// Iterate over the list until reached the specified index.
-	int i;
-	for(i = 0; i != index; i++) {
-		current = current->next;
+	node_t *current = NULL;
+
+	if (index > 0) {
+		// Point to the head node.
+		current = ll->head;
+
+		// Iterate over the list until reached the specified index.
+		int i;
+		for(i = 0; i != index; i++) {
+			current = current->next;
+		}
+	} else {
+		
+		// Point to the tail node.
+		current = ll->tail;
+
+		// Traverse the list backwards until reached the specified index.
+		int i;
+		for(i = 0; i < 0 - index; i++) {
+			current = current->prev;
+		}
 	}
 
 	// Grab the data before doing anything with the pointer.
-	void *data = current->data;
+	data = current->data;
 
 	// Point the previous node at the next in the list.
 	current->prev->next = current->next;
@@ -339,31 +371,39 @@ void *ll_pop_by_index(linked_list_t *ll, int index) {
 	return data;
 }
 
+/* Variation function to allow for a singular or secondary parameter to reverse the print of the list. */
+void var_ll_print_list(ll_print_list_args args) {
+	linked_list_t *ll = args.ll;
+	bool reversed = args.reversed ? args.reversed : false;
+
+	ll_print_list_base(ll, reversed);
+}
+
 /* Prints the information about all nodes in the linked list. Useful for debug information. */
-void ll_print_list(linked_list_t *ll) {
-	// Point at the head of the linked list.
-	node_t *current = ll->head;
+void ll_print_list_base(linked_list_t *ll, bool reversed) {
+	// Point at the head (or tail if reversed) of the linked list.
+	node_t *current = (reversed) ? ll->tail : ll->head;
 
 	// Integer to track of which node we are on.
-	int index = 0;
+	int index = (reversed) ? ll->size - 1 : 0;
 
 	// While we are still within the list.
 	while(current != NULL) {
 
 		// Print a table describing the address
-		printf(	"Node %d:\n" 			// Print the index of the node we are at.
-				"\tAddress: %08x\n"		// Print the address of the pointer to the node.
-				"\tData: %08x\n"		// Print the address of the pointer to the data.
-				"\tPrevious: %08x\n"	// Print the address of the pointer to the previous node.
-				"\tNext: %08x\n",		// Print the address of the pointer to the next node.
-				index++,				// Increment the index after using.
-				current,
-				current->data,
-				current->prev,
-				current->next
+		printf(	"Node %d:\n" 					// Print the index of the node we are at.
+				"\tPrevious: %p\n"			// Print the address of the pointer to the previous node.
+				"\tAddress: %p\n"				// Print the address of the pointer to the node.
+				"\tData: %p\n"				// Print the address of the pointer to the data.
+				"\tNext: %p\n",				// Print the address of the pointer to the next node.
+				(reversed) ? index-- : index++,	// Increment (or decrement if reversed) the index after using.
+				(void *)current->prev,
+				(void *)current,
+				(void *)current->data,
+				(void *)current->next
 			);
 
-		// Point to the next node in the list.
-		current = current->next;
+		// Point to the next (or previous is reversed) node in the list.
+		current = (reversed) ? current->prev : current->next;
 	}
 }
