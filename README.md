@@ -33,6 +33,7 @@ This function prints for each node:
   * The address of the data,
   * The address of the previous node,
   * The address of the next node
+  
 This is useful for debugging.
 
 ## Version History
