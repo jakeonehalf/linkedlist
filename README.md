@@ -24,8 +24,12 @@ This function returns the data of the head node and adjusts the head pointer to 
 ### ll_pop_tail(linked_list_t * ll)
 This function returns the data of the tail node and adjusts the tail pointer to point at the previous node.
 
+### ll_pop_by(linked_list_t * ll, bool (*compare_function)(void *cmd_data))
+This function returns the data of the first node that a true is returned from the supplied compare function. The compare function **MUST** return a boolean and accept a void pointer as a passed parameter. The node is removed from the list and the list is adjusted.
+
 ## Version History
 ### v1.0:
 * Initial creation of doubly linked list with head and tail pointers in management node.
 * Can push and pop from either end of the linked list.
 * Can destroy entire linked list, including all data supplied to the list.
+* Can iterate through list to find a specific node based on its data.
