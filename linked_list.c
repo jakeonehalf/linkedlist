@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include "linked_list.h"
 
@@ -175,6 +176,7 @@ void *ll_pop_head(linked_list_t *ll) {
 	return data;
 }
 
+/* Remove the tail of the provided linked list and adjust the tail. */
 void *ll_pop_tail(linked_list_t *ll) {
 	void *data = NULL;
 
@@ -219,4 +221,106 @@ void *ll_pop_tail(linked_list_t *ll) {
 
 	// Return the data.
 	return data;
+}
+
+/* Iterate through the list from head to find the requested node using the provided compare function. */
+void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
+	// Point at the head of the linked list.
+	node_t *current = ll->head;
+
+	// If the linked list is empty, return null.
+	if (ll->size == 0) {
+		return NULL;
+	}
+
+	// Corner case where there is only one node.
+	if (ll->size == 1) {
+		if(compare_function(current->data)) {
+			// Grab the data before doing anything with the linked list.
+			void *data = current->data;
+
+			// Free at the head pointer.
+			free(ll->head);
+
+			// The linked list is empty.
+			ll->head = NULL;
+			ll->tail = NULL;
+
+			// Decrease the size.
+			ll->size--;
+
+			// Return the data;
+			return data;
+		}
+	}
+
+	// If the head is the correct node.
+	if (compare_function(current->data)) {
+		// Remove node from the head of the linked list.
+		return ll_pop_head(ll);
+	}
+
+	// While there are nodes in the linked list. - OOPS... this doesn't account for the tail of the linked list!
+	while(current->next != NULL) {
+		// If the provided compare_function returns true.
+		if(compare_function(current->data)) {
+			void *data = current->data;
+
+			// The previous node now points to the current node's next node.
+			current->prev->next = current->next;
+
+			// The next node now points to the current node's previous node.
+			current->next->prev = current->prev;
+
+			// Now that the node is out of the linked list, free the node.
+			free(current);
+
+			// Decrease the size.
+			ll->size--;
+
+			// Return the data.
+			return data;
+		}
+
+		// Point to the next node in the linked list.
+		current = current->next;
+	}
+
+	// If the tail is the correct node.
+	if (compare_function(current->data)) {
+		// Remove node from the tail of the linked list.
+		return ll_pop_tail(ll);
+	}
+
+	// Node wasn't found in the list.
+	return NULL;
+}
+
+/* Prints the information about all nodes in the linked list. Useful for debug information. */
+void ll_print_list(linked_list_t *ll) {
+	// Point at the head of the linked list.
+	node_t *current = ll->head;
+
+	// Integer to track of which node we are on.
+	int index = 0;
+
+	// While we are still within the list.
+	while(current != NULL) {
+
+		// Print a table describing the address
+		printf(	"Node %d:\n" 			// Print the index of the node we are at.
+				"\tAddress: %08x\n"		// Print the address of the pointer to the node.
+				"\tData: %08x\n"		// Print the address of the pointer to the data.
+				"\tPrevious: %08x\n"	// Print the address of the pointer to the previous node.
+				"\tNext: %08x\n",		// Print the address of the pointer to the next node.
+				index++,				// Increment the index after using.
+				current,
+				current->data,
+				current->prev,
+				current->next
+			);
+
+		// Point to the next node in the list.
+		current = current->next;
+	}
 }
