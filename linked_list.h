@@ -23,6 +23,7 @@ typedef struct {
 linked_list_t *ll_new(void);
 void ll_destroy(linked_list_t *ll); 
 size_t ll_size(linked_list_t *ll);
+void ll_sort(linked_list_t *ll, int (*compare_function)(void *first_data, void *second_data));
 void ll_push_tail(linked_list_t *ll, void *data);
 void ll_push_head(linked_list_t *ll, void *data);
 void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data));

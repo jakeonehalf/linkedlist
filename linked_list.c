@@ -25,23 +25,9 @@ linked_list_t *ll_new(void) {
 
 /* Destroys the linked list and all associated data. */
 void ll_destroy(linked_list_t *ll) {
-	// Iterate through the list and destroy the data and nodes.
-	while(ll->head->next != NULL) {
-		// Change head to point to the next node.
-		ll->head = ll->head->next;
-
-		// Free the previous head's data.
-		free(ll->head->prev->data);
-
-		// Free the previous head.
-		free(ll->head->prev);
+	while(ll->size > 0) {
+		free(ll_pop_head(ll));
 	}
-
-	// Free the tail's data.
-	free(ll->tail->data);
-
-	// Free the tail.
-	free(ll->tail);
 
 	// Free the linked list.
 	free(ll);
@@ -50,6 +36,61 @@ void ll_destroy(linked_list_t *ll) {
 /* Returns the size of the linked list. */
 size_t ll_size(linked_list_t *ll) {
 	return ll->size;
+}
+
+static node_t *ll_merge(node_t *first, node_t  *second, int (*compare_function)(void *first_data, void *second_data)) {
+	// If the first list is empty, return the second.
+	if (first == NULL) {
+		return second;
+	}
+
+	// If the second list is empty, return the first.
+	if (second == NULL) {
+		return first;
+	}
+
+	if (compare_function(first->data, second->data) < 0) {
+		first->next = ll_merge(first->next, second, compare_function);
+		first->next->prev = first;
+		first->prev = NULL;
+		return first;
+	} else {
+		second->next = ll_merge(first, second->next, compare_function);
+		second->next->prev = second;
+		second->prev = NULL;
+		return second;
+	}
+}
+
+static node_t *ll_split(node_t *head) {
+	node_t *fast = head;
+	node_t *slow = head;
+
+	while(fast->next && fast->next->next) {
+		fast = fast->next->next;
+		slow = slow->next;
+	}
+
+	node_t *ret = slow->next;
+	slow->next = NULL;
+	return ret;
+}
+
+static node_t *ll_merge_sort(node_t *head, int (*compare_function)(void *first_data, void *second_data)) {
+	if (head == NULL || head->next == NULL) {
+		return head;
+	}
+
+	node_t *second = ll_split(head);
+
+	head = ll_merge_sort(head, compare_function);
+	second = ll_merge_sort(second, compare_function);
+
+	return ll_merge(head, second, compare_function);
+}
+
+void ll_sort(linked_list_t *ll, int (*compare_function)(void *first_data, void *second_data)) {
+	ll->head = ll_merge_sort(ll->head, compare_function);
 }
 
 /* Push data onto the tail of the provided linked list and adjust the tail. */
