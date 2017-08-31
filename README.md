@@ -12,6 +12,9 @@ This function destroys the linked list and all associated data. All data pointer
 ### ll_size(linked_list_t * ll)
 This function returns the number of nodes in the linked list. This can be retrieved by calling the linked_list_t.size parameter of the linked list management node structure.
 
+### ll_sort(linked_list_t *ll, int (*compare_function)(void *first_data, void *second_data))
+This function sorts the provided linked list in place using merge sort with the supplied compare function. The compare function **MUST** return an integer and accept two void pointers as passed parameters. The compare function must return a negative number if the second parameter is larger than the first, a zero if equal or a positive number if the first parameter is larger than the second.
+
 ### ll_push_tail(linked_list_t * ll, void * data)
 This function pushes the data pointer onto the tail of the provided linked list and adjusts the tail pointer.
 
