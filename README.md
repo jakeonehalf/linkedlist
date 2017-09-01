@@ -22,21 +22,12 @@ This function pushes the data pointer onto the tail of the provided linked list 
 This function pushes the data pointer onto the head of the provided linked list and adjusts the head pointer.
 
 ### ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data))
-**-- Unimplemented --**
-
 This function will push after the specified node based on the compare function.
 
-*Need to determine functionality if node with compare is not found*
-
 ### ll_push_before(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data))
-**-- Unimplemented --**
-
 This function will push before the specified node based on the compare function.
 
-*Need to determine functionality if node with compare is not found*
-
 ### ll_push_at_index(linked_list_t *ll, void *data, int index)
-**-- Unimplemented --**
 This function will push at the specified index and adjust the list.
 
 ### ll_pop_head(linked_list_t * ll)
