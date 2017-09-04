@@ -11,6 +11,7 @@ typedef struct linked_list {
 	node_t *head;
 	node_t *tail;
 	size_t size;
+	void *lock;
 } linked_list_t;
 
 typedef struct {

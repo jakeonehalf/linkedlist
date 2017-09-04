@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <pthread.h>
 #include "linked_list.h"
 
 /* Creates a new empty linked list. */
@@ -16,6 +17,15 @@ linked_list_t *ll_new(void) {
 	// Tail points to null.
 	ll->tail = NULL;
 
+	// Allocate memory for mutex.
+	pthread_mutex_t *ll_mutex = malloc(sizeof(pthread_mutex_t));
+
+	// Initialize mutex.
+	pthread_mutex_init(ll_mutex, NULL);
+
+	// Point the structure's lock to the new mutex.
+	ll->lock = (void *)ll_mutex;
+
 	// Initial size is zero.
 	ll->size = 0;
 
@@ -28,6 +38,9 @@ void ll_destroy(linked_list_t *ll) {
 	while (ll->size > 0) {
 		free(ll_pop_head(ll));
 	}
+
+	// Free mutex.
+	pthread_mutex_destroy(ll->lock);
 
 	// Free the linked list.
 	free(ll);
@@ -60,6 +73,7 @@ static node_t *ll_partition(node_t *low, node_t *high, int (*compare_function)(v
 }
 
 static void ll_quick_sort(node_t* low, node_t* high, int (*compare_function)(void *first_data, void *second_data)) {
+	// If high is not null, low is not point at high and low is not high's next.
 	if ( high != NULL && low != high && low != high->next) {
 		node_t *p = ll_partition(low, high, compare_function);
 		ll_quick_sort(low, p->prev, compare_function);
@@ -68,11 +82,21 @@ static void ll_quick_sort(node_t* low, node_t* high, int (*compare_function)(voi
 }
 
 void ll_sort(linked_list_t *ll, int (*compare_function)(void *first_data, void *second_data)) {
+	// Lock the linked list while being sorted.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
+	// Sort the linked list.
 	ll_quick_sort(ll->head, ll->tail, compare_function);
+
+	// Unlock the linked list now that the list is sorted.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 }
 
 /* Push data onto the tail of the provided linked list and adjust the tail. */
 void ll_push_tail(linked_list_t *ll, void *data) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Corner case where there are no elements on the linked list.
 	if (ll->size == 0) {
 		// Make a new node at the tail pointer.
@@ -81,11 +105,20 @@ void ll_push_tail(linked_list_t *ll, void *data) {
 		// Set the node to point to the data;
 		ll->tail->data = data;
 
+		// Ensure that the tail points to NULL.
+		ll->tail->next = NULL;
+
 		// Head and tail are the same.
 		ll->head = ll->tail;
 
+		// Ensure that the head points back at NULL.
+		ll->head->prev = NULL;
+
 		// Increase the size.
 		ll->size++;
+
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 		return;
 	}
@@ -107,10 +140,16 @@ void ll_push_tail(linked_list_t *ll, void *data) {
 
 	// Increase the size.
 	ll->size++;
+
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 }
 
 /* Push data onto the head of the provided linked list and adjust the head. */
 void ll_push_head(linked_list_t *ll, void *data) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Corner case where there are no elements on the linked list.
 	if (ll->size == 0) {
 		// Make a new node at the head pointer.
@@ -119,11 +158,20 @@ void ll_push_head(linked_list_t *ll, void *data) {
 		// Set the node to point to the data;
 		ll->head->data = data;
 
+		// Ensure that the head points back at NULL.
+		ll->head->prev = NULL;
+
 		// Head and tail are the same.
 		ll->tail = ll->head;
 
+		// Ensure the tail points at NULL.
+		ll->tail->next = NULL;
+
 		// Increase the size.
 		ll->size++;
+
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 		return;
 	}
@@ -146,16 +194,26 @@ void ll_push_head(linked_list_t *ll, void *data) {
 
 	// Increase the size.
 	ll->size++;
+
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 }
 
 /* Push data into the list after the element found by using the provided compare function. */
 void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data)) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Point at the head of the linked list.
 	node_t *current = ll->head;
 
 	// If the linked list is empty or there is only one node, push the data.
 	if (ll->size <= 1) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		ll_push_tail(ll, data);
+
 		return;
 	}
 
@@ -181,6 +239,9 @@ void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void 
 
 		// Increase the size.
 		ll->size++;
+
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 		return;
 	}
@@ -210,6 +271,9 @@ void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void 
 			// Increase the size.
 			ll->size++;
 
+			// Unlock the linked list.
+			pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 			return;
 		}
 
@@ -219,9 +283,16 @@ void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void 
 
 	// If the tail is the correct node.
 	if (compare_function(current->data)) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		ll_push_tail(ll, data);
+
 		return;
 	}
+
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 	// If didn't find the node, just push it at the end.
 	ll_push_tail(ll, data);
@@ -229,18 +300,29 @@ void ll_push_after(linked_list_t *ll, void *data, bool (*compare_function)(void 
 
 /* Push data into the list before the element found by using the provided compare function. */
 void ll_push_before(linked_list_t *ll, void *data, bool (*compare_function)(void *cmd_data)) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Point at the head of the linked list.
 	node_t *current = ll->head;
 
 	// If the linked list is empty or there is only one node, push the data.
 	if (ll->size <= 1) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		ll_push_head(ll, data);
+
 		return;
 	}
 
 	// If the head is the correct node.
 	if (compare_function(current->data)) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		ll_push_head(ll, data);
+
 		return;
 	}
 
@@ -268,6 +350,9 @@ void ll_push_before(linked_list_t *ll, void *data, bool (*compare_function)(void
 
 			// Increase the size.
 			ll->size++;
+
+			// Unlock the linked list.
+			pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 			return;
 		}
@@ -299,8 +384,13 @@ void ll_push_before(linked_list_t *ll, void *data, bool (*compare_function)(void
 		// Increase the size.
 		ll->size++;
 
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 		return;
 	}
+
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 	// If didn't find the node, just push it at the beginning.
 	ll_push_head(ll, data);
@@ -309,18 +399,29 @@ void ll_push_before(linked_list_t *ll, void *data, bool (*compare_function)(void
 /* Push data into the list at the specified index assuming a 0 indexed list.
  * This will shift the element at the specified index to be after the inserted node. */
 void ll_push_at_index(linked_list_t *ll, void *data, int index) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Create a pointer to keep track of location in list.
 	node_t *current = NULL;
 
 	// If the linked list is empty or index is head, just push as the head.
 	if (ll->size == 0 || index == 0) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		ll_push_head(ll, data);
+
 		return;
 	}
 
 	// If the index is the last item in the list, just push as the tail.
 	if (index == ll->size) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		ll_push_tail(ll, data);
+
 		return;
 	}
 
@@ -366,14 +467,23 @@ void ll_push_at_index(linked_list_t *ll, void *data, int index) {
 
 	// Increase the size.
 	ll->size++;
+
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 }
 
 /* Remove the head of the provided linked list and adjust the head. */
 void *ll_pop_head(linked_list_t *ll) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	void *data = NULL;
 
 	// If the linked list is empty, return null.
 	if (ll->size == 0) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		return NULL;
 	}
 
@@ -391,6 +501,9 @@ void *ll_pop_head(linked_list_t *ll) {
 
 		// Decrease the size.
 		ll->size--;
+
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 		// Return the data;
 		return data;
@@ -411,16 +524,25 @@ void *ll_pop_head(linked_list_t *ll) {
 	// Decrease the size.
 	ll->size--;
 
+	// Unlock the linked list.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Return the data.
 	return data;
 }
 
 /* Remove the tail of the provided linked list and adjust the tail. */
 void *ll_pop_tail(linked_list_t *ll) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	void *data = NULL;
 
 	// If the linked list is empty, return null.
 	if (ll->size == 0) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		return NULL;
 	}
 
@@ -438,6 +560,9 @@ void *ll_pop_tail(linked_list_t *ll) {
 
 		// Decrease the size.
 		ll->size--;
+
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 		// Return the data;
 		return data;
@@ -458,17 +583,26 @@ void *ll_pop_tail(linked_list_t *ll) {
 	// Decrease the size.
 	ll->size--;
 
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 	// Return the data.
 	return data;
 }
 
 /* Iterate through the list from head to find the requested node using the provided compare function. */
 void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Point at the head of the linked list.
 	node_t *current = ll->head;
 
 	// If the linked list is empty, return null.
 	if (ll->size == 0) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		return NULL;
 	}
 
@@ -488,6 +622,9 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 			// Decrease the size.
 			ll->size--;
 
+			// Unlock the linked list.
+			pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 			// Return the data;
 			return data;
 		}
@@ -495,6 +632,9 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 
 	// If the head is the correct node.
 	if (compare_function(current->data)) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		// Remove node from the head of the linked list.
 		return ll_pop_head(ll);
 	}
@@ -518,6 +658,9 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 			// Decrease the size.
 			ll->size--;
 
+			// Unlock the linked list.
+			pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 			// Return the data.
 			return data;
 		}
@@ -528,6 +671,9 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 
 	// If the tail is the correct node.
 	if (compare_function(current->data)) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		// Remove node from the tail of the linked list.
 		return ll_pop_tail(ll);
 	}
@@ -538,18 +684,30 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 
 /* Remove the node at the specified index. A negative number traverses the list from the tail (-1 indexed). */
 void *ll_pop_by_index(linked_list_t *ll, int index) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// If the specified index is the head node.
 	if (index == 0 || index == (ll->size * -1)) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		return ll_pop_head(ll);
 	}
 
 	// If the specified index is the tail node.
 	if (index == ll->size - 1 || index == -1) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		return ll_pop_tail(ll);
 	}
 
 	// If the index is beyond the size of the linked list.
 	if (index >= ll->size) {
+		// Unlock the linked list.
+		pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 		return NULL;
 	}
 
@@ -590,12 +748,18 @@ void *ll_pop_by_index(linked_list_t *ll, int index) {
 	// Node is ready to be deallocated.
 	free(current);
 
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
+
 	// Return the data.
 	return data;
 }
 
 /* Prints the information about all nodes in the linked list. Useful for debug information. */
 static void ll_print_list_base(linked_list_t *ll, bool reversed) {
+	// Lock the linked list to ensure mutual exclusion.
+	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+
 	// Point at the head (or tail if reversed) of the linked list.
 	node_t *current = (reversed) ? ll->tail : ll->head;
 
@@ -621,6 +785,9 @@ static void ll_print_list_base(linked_list_t *ll, bool reversed) {
 		// Point to the next (or previous if reversed) node in the list.
 		current = (reversed) ? current->prev : current->next;
 	}
+
+	// Unlock the linked list.
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 }
 
 /* Variation function to allow for a singular or secondary parameter to reverse the print of the list. */
