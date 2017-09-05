@@ -41,6 +41,7 @@ void ll_destroy(linked_list_t *ll) {
 
 	// Free mutex.
 	pthread_mutex_destroy(ll->lock);
+	free(ll->lock);
 
 	// Free the linked list.
 	free(ll);
