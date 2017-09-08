@@ -526,7 +526,7 @@ void *ll_pop_head(linked_list_t *ll) {
 	ll->size--;
 
 	// Unlock the linked list.
-	pthread_mutex_lock((pthread_mutex_t *)ll->lock);
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 	// Return the data.
 	return data;
@@ -678,6 +678,8 @@ void *ll_pop_by(linked_list_t *ll, bool (*compare_function)(void *cmd_data)) {
 		// Remove node from the tail of the linked list.
 		return ll_pop_tail(ll);
 	}
+
+	pthread_mutex_unlock((pthread_mutex_t *)ll->lock);
 
 	// Node wasn't found in the list.
 	return NULL;
